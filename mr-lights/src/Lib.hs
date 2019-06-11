@@ -9,6 +9,8 @@ module Lib where
 import Polysemy
 import Polysemy.Fixpoint
 import Polysemy.State
+import Polysemy.Trace
+import Polysemy.Output
 import Polysemy.State.Final
 
 newtype NoQuotes = NoQuotes String
@@ -25,6 +27,7 @@ newtype Expr t = Expr { getExpr :: String }
 frick
     :: ( Member (FinalState Int) r
        , Member (State Int) r
+       , Member Trace r
        )
     => Sem r Int
 frick = do
@@ -39,7 +42,15 @@ someFunc :: IO ()
 someFunc
   = print
   . run
-  . runFixpoint run
+  . runFoldMapOutput id
+  . runTraceAsOutput
+  . runFixpoint (
+      snd
+    . run
+    . runFoldMapOutput id
+    . runTraceAsOutput
+                )
   . runFinalState 0
   $ frick
+
 

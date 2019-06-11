@@ -1,8 +1,9 @@
 {-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-{-# OPTIONS_GHC -Wall #-}
+-- {-# OPTIONS_GHC -Wall #-}
 
 module Data.C.Expr where
 
@@ -10,6 +11,8 @@ import Data.Functor.Compose
 import Data.Reify
 import Data.Proxy
 import Data.Traversable
+import Unsafe.Coerce
+
 
 
 data SomeCType where
@@ -48,6 +51,11 @@ data ExprForm
   | Access
   deriving (Show)
 
+data Volatility
+  = Volatile
+  | Pure
+  deriving (Eq, Ord, Show)
+
 -- | Rose tree. Internal AST data structure
 data Tree a  = Tree
   { getElem     :: a
@@ -57,10 +65,10 @@ data Tree a  = Tree
 
 -- | Untyped Expr representation
 -- Carries type information in type tag
-type ExprMono = Tree (ExprForm, CType, String)
+type ExprMono = Tree (Volatility, ExprForm, CType, String)
 
 instance Show ExprMono where
-  show (Tree (form, _, str) xs) = case form of
+  show (Tree (_, form, _, str) xs) = case form of
     Uniform -> str
     Variable -> str
     Op1      -> mconcat ["(", str, show (xs!!0), ")"]
@@ -79,7 +87,7 @@ instance Show ExprMono where
 -- We use the ToCType typeclass to genenerate dependence from types to values
 data Expr ty = Expr
   { getTypeTag :: Proxy ty
-  , toMono ::  Tree (ExprForm, CType, String)
+  , toMono ::  Tree (Volatility, ExprForm, CType, String)
   }
 
 instance ToCType ty => Show (Expr ty) where
@@ -96,7 +104,7 @@ class ToCType  ty where
 op1 :: forall a b
        . (ToCType a, ToCType b)
        => String -> Expr a -> Expr b
-op1 str a = Expr t (Tree (Op1, toCType t, str) [toMono a])
+op1 str a = Expr t (Tree (Pure, Op1, toCType t, str) [toMono a])
   where t = tag @b
 
 -- | Unary operator.
@@ -104,7 +112,7 @@ op1 str a = Expr t (Tree (Op1, toCType t, str) [toMono a])
 op1'' :: forall a
        . (ToCType a)
        => String -> Expr a -> Expr a
-op1'' str a = Expr t (Tree (Op1, toCType t, str) [toMono a])
+op1'' str a = Expr t (Tree (Pure, Op1, toCType t, str) [toMono a])
   where t = tag @a
 
 -- | Unary operator.
@@ -113,7 +121,7 @@ op1'' str a = Expr t (Tree (Op1, toCType t, str) [toMono a])
 op1pre :: forall a b
           . (ToCType a, ToCType b)
           => String -> Expr a -> Expr b
-op1pre str a = Expr t (Tree (Op1Pre, toCType t, str) [toMono a])
+op1pre str a = Expr t (Tree (Pure, Op1Pre, toCType t, str) [toMono a])
   where t = tag @b
 
 -- | Unary operator.
@@ -122,7 +130,7 @@ op1pre str a = Expr t (Tree (Op1Pre, toCType t, str) [toMono a])
 op1pre'' :: forall a
           . (ToCType a)
           => String -> Expr a -> Expr a
-op1pre'' str a = Expr t (Tree (Op1Pre, toCType t, str) [toMono a])
+op1pre'' str a = Expr t (Tree (Pure, Op1Pre, toCType t, str) [toMono a])
   where t = tag @a
 
 -- | Binary operator.
@@ -130,7 +138,7 @@ op1pre'' str a = Expr t (Tree (Op1Pre, toCType t, str) [toMono a])
 op2 :: forall a b c
        . (ToCType a, ToCType b, ToCType c)
        => String -> Expr a -> Expr b -> Expr c
-op2 str a b = Expr t (Tree (Op2, toCType t, str) [toMono a, toMono b])
+op2 str a b = Expr t (Tree (Pure, Op2, toCType t, str) [toMono a, toMono b])
   where t = tag @c
 
 -- | Binary operator.
@@ -138,7 +146,7 @@ op2 str a b = Expr t (Tree (Op2, toCType t, str) [toMono a, toMono b])
 op2' :: forall a c
        . (ToCType a, ToCType c)
        => String -> Expr a -> Expr a -> Expr c
-op2' str a b = Expr t (Tree (Op2, toCType t, str) (fmap toMono [a, b]))
+op2' str a b = Expr t (Tree (Pure, Op2, toCType t, str) (fmap toMono [a, b]))
   where t = tag @c
 
 -- | Binary operator.
@@ -146,7 +154,7 @@ op2' str a b = Expr t (Tree (Op2, toCType t, str) (fmap toMono [a, b]))
 op2'' :: forall a
        . (ToCType a)
        => String -> Expr a -> Expr a -> Expr a
-op2'' str a b = Expr t (Tree (Op2, toCType t, str) (fmap toMono [a, b]))
+op2'' str a b = Expr t (Tree (Pure, Op2, toCType t, str) (fmap toMono [a, b]))
   where t = tag @a
 
 
@@ -156,7 +164,7 @@ op2'' str a b = Expr t (Tree (Op2, toCType t, str) (fmap toMono [a, b]))
 op2pre :: forall a b c
           . (ToCType a, ToCType b, ToCType c)
           => String -> Expr a -> Expr b -> Expr c
-op2pre str a b = Expr t (Tree (Op2Pre, toCType t, str) [toMono a, toMono b])
+op2pre str a b = Expr t (Tree (Pure, Op2Pre, toCType t, str) [toMono a, toMono b])
   where t = tag @c
 
 -- | Binary operator.
@@ -165,7 +173,7 @@ op2pre str a b = Expr t (Tree (Op2Pre, toCType t, str) [toMono a, toMono b])
 op2pre' :: forall a c
        . (ToCType a, ToCType c)
        => String -> Expr a -> Expr a -> Expr c
-op2pre' str a b = Expr t (Tree (Op2Pre, toCType t, str) (fmap toMono [a, b]))
+op2pre' str a b = Expr t (Tree (Pure, Op2Pre, toCType t, str) (fmap toMono [a, b]))
   where t = tag @c
 
 -- | Binary operator.
@@ -174,7 +182,7 @@ op2pre' str a b = Expr t (Tree (Op2Pre, toCType t, str) (fmap toMono [a, b]))
 op2pre'' :: forall a
        . (ToCType a)
        => String -> Expr a -> Expr a -> Expr a
-op2pre'' str a b = Expr t (Tree (Op2Pre, toCType t, str) (fmap toMono [a, b]))
+op2pre'' str a b = Expr t (Tree (Pure, Op2Pre, toCType t, str) (fmap toMono [a, b]))
   where t = tag @a
 
 -- | Ternary operator.
@@ -183,7 +191,7 @@ op2pre'' str a b = Expr t (Tree (Op2Pre, toCType t, str) (fmap toMono [a, b]))
 op3pre :: forall a b c d
           . (ToCType a, ToCType b, ToCType c, ToCType d)
           => String -> Expr a -> Expr b -> Expr c -> Expr d
-op3pre str a b c = Expr t (Tree (Op3Pre, toCType t, str) [toMono a, toMono b, toMono c])
+op3pre str a b c = Expr t (Tree (Pure, Op3Pre, toCType t, str) [toMono a, toMono b, toMono c])
   where t = tag @d
 
 -- | Ternary operator.
@@ -192,7 +200,7 @@ op3pre str a b c = Expr t (Tree (Op3Pre, toCType t, str) [toMono a, toMono b, to
 op3pre' :: forall a d
           . (ToCType a, ToCType d)
           => String -> Expr a -> Expr a -> Expr a -> Expr d
-op3pre' str a b c = Expr t (Tree (Op3Pre, toCType t, str) (fmap toMono [a, b, c]))
+op3pre' str a b c = Expr t (Tree (Pure, Op3Pre, toCType t, str) (fmap toMono [a, b, c]))
   where t = tag @d
 
 -- | Ternary operator.
@@ -201,7 +209,7 @@ op3pre' str a b c = Expr t (Tree (Op3Pre, toCType t, str) (fmap toMono [a, b, c]
 op3pre'' :: forall a
           . (ToCType a)
           => String -> Expr a -> Expr a -> Expr a -> Expr a
-op3pre'' str a b c = Expr t (Tree (Op3Pre, toCType t, str) (fmap toMono [a, b, c]))
+op3pre'' str a b c = Expr t (Tree (Pure, Op3Pre, toCType t, str) (fmap toMono [a, b, c]))
   where t = tag @a
 
 
@@ -211,7 +219,7 @@ op3pre'' str a b c = Expr t (Tree (Op3Pre, toCType t, str) (fmap toMono [a, b, c
 op4pre :: forall a b c d e
           . (ToCType a, ToCType b, ToCType c, ToCType d, ToCType e)
           => String -> Expr a -> Expr b -> Expr c -> Expr d -> Expr e
-op4pre str a b c d = Expr t (Tree (Op4Pre, toCType t, str) [toMono a, toMono b, toMono c, toMono d])
+op4pre str a b c d = Expr t (Tree (Pure, Op4Pre, toCType t, str) [toMono a, toMono b, toMono c, toMono d])
   where t = tag @e
 
 -- | Quaternary operator.
@@ -220,7 +228,7 @@ op4pre str a b c d = Expr t (Tree (Op4Pre, toCType t, str) [toMono a, toMono b, 
 op4pre' :: forall a e
           . (ToCType a, ToCType e)
           => String -> Expr a -> Expr a -> Expr a -> Expr a -> Expr e
-op4pre' str a b c d = Expr t (Tree (Op4Pre, toCType t, str) (fmap toMono [a, b, c, d]))
+op4pre' str a b c d = Expr t (Tree (Pure, Op4Pre, toCType t, str) (fmap toMono [a, b, c, d]))
   where t = tag @e
 
 -- | Quaternary operator.
@@ -229,7 +237,7 @@ op4pre' str a b c d = Expr t (Tree (Op4Pre, toCType t, str) (fmap toMono [a, b, 
 op4pre'' :: forall a e
           . (ToCType a, ToCType e)
           => String -> Expr a -> Expr a -> Expr a -> Expr a -> Expr e
-op4pre'' str a b c d = Expr t (Tree (Op4Pre, toCType t, str) (fmap toMono [a, b, c, d]))
+op4pre'' str a b c d = Expr t (Tree (Pure, Op4Pre, toCType t, str) (fmap toMono [a, b, c, d]))
   where t = tag @e
 
 
@@ -280,25 +288,30 @@ instance (Show a) => Show (ExprMonoF a) where
 -- | Currently only inlines uniforms.
 instance MuRef ExprMono where
   type DeRef ExprMono = ExprMonoF
-  mapDeRef func (Tree (form, ty, str) xs) =
+  mapDeRef func (Tree (v, form, ty, str) xs) =
        fmap (TreeF (form, ty, str, xs)) $ g xs
     where
       -- g :: [ExprMono] -> f [Maybe u]
       g ts = for @[] ts $ \t -> traverse (func @ExprMono) $ shouldShare t
 
-instance MuRef [ExprMono] where
-  type DeRef [ExprMono] = Compose [] (DeRef ExprMono)
-  mapDeRef func [] = pure $ Compose []
-  mapDeRef func (t : ts) =
-    fmap Compose $
-      (:)
-        <$> (mapDeRef @ExprMono (\z -> _ z) t)
-        <*> fmap getCompose (mapDeRef func ts)
+instance MuRef a => MuRef [a] where
+    type DeRef [a] = Compose [] (DeRef a)
 
+    mapDeRef
+        :: forall f u. Applicative f
+        => (forall b. (MuRef b, Compose [] (DeRef a) ~ DeRef b) => b -> f u)
+        -> [a]
+        -> f (Compose [] (DeRef a) u)
+    mapDeRef f = fmap Compose . traverse go
+      where
+        go :: a -> f (DeRef a u)
+        go = mapDeRef @a $ \(x :: b) -> f @[b] [x]
 
 shouldShare :: ExprMono -> Maybe ExprMono
-shouldShare (Tree (Uniform, _, _) _) = Nothing
-shouldShare expr = Just expr
+shouldShare (Tree (Volatile, _, _, _) _) = Nothing
+shouldShare (Tree (_, Uniform, _, _) _)  = Nothing
+shouldShare (Tree (_, _, CTVoid, _) _)   = Nothing
+shouldShare expr                         = Just expr
 
 
 
@@ -306,6 +319,11 @@ shouldShare expr = Just expr
 uniform :: forall a
            . ToCType a
            => String -> Expr a
-uniform str = Expr t (Tree (Uniform, toCType t, str) [])
+uniform str = Expr t (Tree (Pure, Uniform, toCType t, str) [])
   where t = tag @a
+
+
+volatile :: Expr a -> Expr a
+volatile (Expr t (Tree (_, form, ty, str) xs)) = Expr t $ Tree (Volatile, form, ty, str) xs
+
 

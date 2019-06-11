@@ -2,12 +2,15 @@
 
 module Data.C.Program where
 
+import Control.Exception
+import Data.Functor.Compose
 import Data.Reify
 import System.IO.Unsafe
 import Data.C.Expr
 import Data.C.Types
 import Control.Monad.Writer
 import Data.Traversable
+import Debug.Trace
 
 newtype Id = Id Int
 instance Show Id where
@@ -69,12 +72,14 @@ toProgram = monoToProgram . toMono
 
 toJonk :: [SomeCType] -> Program
 toJonk cs = Function . unsafePerformIO $ do
-  z <- for cs $ \(SomeCType c) -> do
-    Graph nodes _ <- reifyGraph $ toMono c
-    pure $ NewAssign <$> nodes
-  pure $ join z
+  let v = fmap (\(SomeCType c) -> toMono c) cs
+  Graph nodes _ <- reifyGraph v
+  print $ fmap (fmap getCompose) $ nodes
+  pure $ fmap NewAssign $ fmap (fmap $ head . getCompose) nodes
 
 
--- $> print $ toJonk $ let foo = 6; bar = foo + 5 in [SomeCType @'CTInt $ foo + bar, SomeCType $ showNumber $ foo + bar + bar]
+
+-- $>  Control.Exception.evaluate $   toJonk $ let foo = 6; bar = foo + 5 in
+-- $> [ SomeCType @'CTFloat bar, SomeCType $ showNumber bar, SomeCType $ showNumber foo ]
 
 

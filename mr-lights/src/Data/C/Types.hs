@@ -16,9 +16,9 @@ instance ToCType 'CTInt where
   toCType _ = CTInt
 
 instance Num CInt where
-  (+) = op2' "+"
-  (-) = op2' "-"
-  (*) = op2' "*"
+  (+) = op2 "+"
+  (-) = op2 "-"
+  (*) = op2 "*"
   abs = op1pre "abs"
   signum = op1pre "sign"
   negate = op1 "-"
@@ -35,9 +35,9 @@ instance ToCType 'CTFloat where
   toCType _ = CTFloat
 
 instance Num CFloat where
-  (+) = op2' "+"
-  (-) = op2' "-"
-  (*) = op2' "*"
+  (+) = op2 "+"
+  (-) = op2 "-"
+  (*) = op2 "*"
   abs = op1pre "abs"
   signum = op1pre "sign"
   negate = op1 "-"
@@ -45,7 +45,7 @@ instance Num CFloat where
 
 
 instance Fractional CFloat where
-  (/) = op2' "/"
+  (/) = op2 "/"
   fromRational x = uniform . show $ (fromRational x :: Float)
 
 instance Floating CFloat where
@@ -54,7 +54,7 @@ instance Floating CFloat where
   exp = op1pre "exp"
   log = op1pre "log"
   sqrt = op1pre "sqrt"
-  (**) = op2pre' "pow"
+  (**) = op2pre "pow"
   sin = op1pre "sin"
   cos = op1pre "cos"
   tan = op1pre "tan"
