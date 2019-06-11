@@ -6,8 +6,14 @@
 
 module Data.C.Expr where
 
+import Data.Functor.Compose
 import Data.Reify
 import Data.Proxy
+import Data.Traversable
+
+
+data SomeCType where
+  SomeCType :: ToCType a => Expr a -> SomeCType
 
 
 
@@ -17,6 +23,7 @@ data CType
   | CTRGB
   | CTFloat
   | CTBool
+  | CTVoid
   deriving (Eq, Ord)
 
 instance Show CType where
@@ -25,6 +32,7 @@ instance Show CType where
     CTBool  -> "bool"
     CTRGB   -> "CRGB"
     CTInt   -> "int"
+    CTVoid  -> "void"
 
 -- | Internal form tag
 data ExprForm
@@ -41,9 +49,10 @@ data ExprForm
   deriving (Show)
 
 -- | Rose tree. Internal AST data structure
-data Tree a  = Tree { getElem     :: a
-                    , getChildren :: [Tree a]
-                    }
+data Tree a  = Tree
+  { getElem     :: a
+  , getChildren :: [Tree a]
+  }
 
 
 -- | Untyped Expr representation
@@ -271,14 +280,27 @@ instance (Show a) => Show (ExprMonoF a) where
 -- | Currently only inlines uniforms.
 instance MuRef ExprMono where
   type DeRef ExprMono = ExprMonoF
-  mapDeRef func (Tree (form, ty, str) xs) = TreeF (form, ty, str, xs) <$> g xs
+  mapDeRef func (Tree (form, ty, str) xs) =
+       fmap (TreeF (form, ty, str, xs)) $ g xs
     where
-      g (x:xs') = (:) <$> (traverse func $ shouldShare x) <*> g xs'
-      g [] = pure []
+      -- g :: [ExprMono] -> f [Maybe u]
+      g ts = for @[] ts $ \t -> traverse (func @ExprMono) $ shouldShare t
 
-      shouldShare :: ExprMono -> Maybe ExprMono
-      shouldShare (Tree (Uniform, _, _) _) = Nothing
-      shouldShare expr = Just expr
+instance MuRef [ExprMono] where
+  type DeRef [ExprMono] = Compose [] (DeRef ExprMono)
+  mapDeRef func [] = pure $ Compose []
+  mapDeRef func (t : ts) =
+    fmap Compose $
+      (:)
+        <$> (mapDeRef @ExprMono (\z -> _ z) t)
+        <*> fmap getCompose (mapDeRef func ts)
+
+
+shouldShare :: ExprMono -> Maybe ExprMono
+shouldShare (Tree (Uniform, _, _) _) = Nothing
+shouldShare expr = Just expr
+
+
 
 -- | Uniform expression.
 uniform :: forall a

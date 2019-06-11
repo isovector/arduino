@@ -1,12 +1,13 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module Data.C.Program where
 
-
 import Data.Reify
-import Data.Monoid
 import System.IO.Unsafe
-
 import Data.C.Expr
 import Data.C.Types
+import Control.Monad.Writer
+import Data.Traversable
 
 newtype Id = Id Int
 instance Show Id where
@@ -15,19 +16,25 @@ instance Show Id where
 -- | Statement internal representation
 --
 -- We tag a Statement with a Unique ID and its corresponding untyped expression
-data Statement = NewAssign (Unique, ExprMonoF Unique)
-               -- MutAssign (Unique, ExprMonoF Unique)
+data Statement
+  = NewAssign (Unique, ExprMonoF Unique)
 
 getExpr :: Statement -> ExprMonoF Unique
 getExpr (NewAssign (_, expr)) = expr
 
 instance Show Statement where
+  show (NewAssign (_, expr@(TreeF (_, CTVoid, _, _) _))) =
+    mconcat
+      [ show $ fmap Id expr
+      , ";"
+      ]
   show (NewAssign (i, expr@(TreeF (_, ty, _, _) _))) =
     mconcat
       [ show ty
       , " "
-      , show . Id $ i, " = "
-      , show . (Id <$>) $ expr
+      , show $ Id i
+      , " = "
+      , show $ fmap Id expr
       , ";"
       ]
 
@@ -44,7 +51,7 @@ instance Show Function where
       , "}"
       ]
     where
-      assignments = unlines $ ("\t" <>) . show <$> reverse xs
+      assignments = unlines $ ("\n\t" <>) . show <$> reverse xs
 
 
 -- | Returns a program given an expression in closed untyped form
@@ -60,6 +67,14 @@ type Program = Function
 toProgram :: CInt -> Program
 toProgram = monoToProgram . toMono
 
--- $> print $ toProgram $ 5 + 6
+toJonk :: [SomeCType] -> Program
+toJonk cs = Function . unsafePerformIO $ do
+  z <- for cs $ \(SomeCType c) -> do
+    Graph nodes _ <- reifyGraph $ toMono c
+    pure $ NewAssign <$> nodes
+  pure $ join z
+
+
+-- $> print $ toJonk $ let foo = 6; bar = foo + 5 in [SomeCType @'CTInt $ foo + bar, SomeCType $ showNumber $ foo + bar + bar]
 
 

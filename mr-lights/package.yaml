@@ -24,6 +24,7 @@ dependencies:
 - polysemy
 - polysemy-plugin
 - data-reify
+- mtl
 
 library:
   source-dirs: src
