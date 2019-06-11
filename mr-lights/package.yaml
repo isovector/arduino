@@ -1,0 +1,44 @@
+name:                mr-lights
+version:             0.1.0.0
+github:              "isovector/mr-lights"
+license:             BSD3
+author:              "Sandy Maguire"
+maintainer:          "sandy@sandymaguire.me"
+copyright:           "2019 Sandy Maguire"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/isovector/mr-lights#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- polysemy
+- polysemy-plugin
+- data-reify
+
+library:
+  source-dirs: src
+
+default-extensions:
+- DataKinds
+- FlexibleContexts
+- GADTs
+- LambdaCase
+- PolyKinds
+- RankNTypes
+- ScopedTypeVariables
+- TypeApplications
+- TypeOperators
+- TypeFamilies
+
+ghc-options:
+- -fplugin=Polysemy.Plugin
