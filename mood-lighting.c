@@ -2,7 +2,8 @@
 
 #define POT_PIN 0
 #define LED_PIN   7
-#define NUM_LEDS  60
+#define CLOCK_PIN 5
+#define NUM_LEDS  30
 #define INTENSITY 48
 #define SWITCH_PIN 10
 #define THRESHOLD (INTENSITY * 2)
@@ -15,7 +16,8 @@ StateFn programs[PROGRAMS];
 
 
 void setup() {
-  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<DOTSTAR, LED_PIN, CLOCK_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  //FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
 
   programs[0] = &goLeft;
   programs[1] = &goRight;
@@ -74,21 +76,21 @@ void goLeft() {
   static int i = 0;
 
   setup_state([&i]() {
-      i = 0;
+    i = 0;
   });
 
   setColor(&leds[i]);
   FastLED.show();
   i += 1;
 
-  next_program(25, i > 59);
+  next_program(25, i > NUM_LEDS - 1);
 }
 
 void goRight() {
-  static int i = 59;
+  static int i = NUM_LEDS - 1;
 
   setup_state([&i]() {
-      i = 59;
+    i = NUM_LEDS - 1;
   });
 
   setColor(&leds[i]);
@@ -99,10 +101,10 @@ void goRight() {
 }
 
 void goOut() {
-  static int i = 30;
+  static int i = NUM_LEDS / 2;
 
   setup_state([&i]() {
-      i = 30;
+    i = NUM_LEDS / 2;
   });
 
   setColor(&leds[i]);
@@ -110,14 +112,14 @@ void goOut() {
   FastLED.show();
   i += 1;
 
-  next_program(50, i > 59);
+  next_program(50, i > NUM_LEDS - 1);
 }
 
 void goIn() {
   static int i = 0;
 
   setup_state([&i]() {
-      i = 0;
+    i = 0;
   });
 
   if (i % 2 == 0) {
@@ -128,28 +130,28 @@ void goIn() {
   FastLED.show();
   i += 1;
 
-  next_program(25, i > 60);
+  next_program(25, i > NUM_LEDS);
 }
 
 void goRandom() {
   static int i = 0;
 
   setup_state([&i]() {
-      i = 0;
+    i = 0;
   });
 
   setColor(&leds[rand() % NUM_LEDS]);
   FastLED.show();
   i += 1;
 
-  next_program(25, i > 59);
+  next_program(25, i > NUM_LEDS - 1);
 }
 
 void goCrazy() {
   static int i = 0;
 
   setup_state([&i]() {
-      i = 0;
+    i = 0;
   });
 
   z += 10;
@@ -158,13 +160,13 @@ void goCrazy() {
   FastLED.show();
   i += 1;
 
-  next_program(25, i > 59);
+  next_program(25, i > NUM_LEDS - 1);
 }
 
 void handleButton() {
   int reading = digitalRead(SWITCH_PIN);
 
-   if (reading != lastButtonState) {
+  if (reading != lastButtonState) {
     lastDebounceTime = millis();
   }
 
@@ -192,8 +194,8 @@ void handleDial() {
 }
 
 void loop() {
-  handleButton();
-  handleDial();
+  //handleButton();
+//  handleDial();
 
   switch (buttonPresses % 3) {
     case 0:
@@ -204,5 +206,4 @@ void loop() {
       break;
   }
 }
-
 
