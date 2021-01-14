@@ -1,13 +1,16 @@
 #include <FastLED.h>
 
+#define SPACING 25
 #define POT_PIN 0
 #define LED_PIN   7
 #define CLOCK_PIN 5
-#define NUM_LEDS  30
+#define LOGICAL_LEDS  ((int)(NUM_LEDS / SCALE_FACTOR))
+#define NUM_LEDS  90
 #define INTENSITY 48
-#define SWITCH_PIN 10
+#define SWITCH_PIN 2
 #define THRESHOLD (INTENSITY * 2)
-#define PROGRAMS 6
+#define PROGRAMS 5
+#define SCALE_FACTOR 1.5
 
 typedef void (*StateFn)();
 
@@ -16,19 +19,22 @@ StateFn programs[PROGRAMS];
 
 
 void setup() {
-  FastLED.addLeds<DOTSTAR, LED_PIN, CLOCK_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  //FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
+  //FastLED.addLeds<DOTSTAR, LED_PIN, CLOCK_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
 
   programs[0] = &goLeft;
-  programs[1] = &goRight;
+  programs[1] = &goIn;
   programs[2] = &goOut;
-  programs[3] = &goIn;
-  programs[4] = &goRandom;
-  programs[5] = &goCrazy;
+  programs[3] = &goRight;
+  programs[4] = &sdf;
+  //programs[4] = &goRandom;
+  //programs[5] = &goCrazy;
+
+  pinMode(SWITCH_PIN, INPUT);
 }
 
-
-float speed = 10;
+bool on = true;
+float speed = 8;
 int brightness = 1024;
 int z = 0;
 int p = 0;
@@ -36,13 +42,16 @@ bool needs_new_state = false;
 int buttonPresses = 0;
 
 unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
+const unsigned long debounceDelay = 5;
 int buttonState = LOW;
 int lastButtonState = LOW;
 
+int (*sdf_func)(int, int);
+int sdf_time = 500;
 
 
-void setColor(CRGB* rgb) {
+void setColorZ(int i, int z) {
+  CRGB* rgb = &leds[(int)((float)i * SCALE_FACTOR)];
   int intensity = (int)(INTENSITY * ((float)brightness / 1024));
   int r = cos(z * 0.02) * intensity + intensity;
   int g = sin(z * 0.03  + 10) * intensity + intensity;
@@ -53,7 +62,15 @@ void setColor(CRGB* rgb) {
     div = 1.8;
   }
 
-  *rgb = CRGB((int)(r / div), (int)(g / div), (int)(b / div));
+  if (on) {
+    *rgb = CRGB((int)(r / div), (int)(g / div), (int)(b / div));
+  } else {
+    *rgb = CRGB(0, 0, 0);
+  }
+}
+
+void setColor(int i) {
+  setColorZ(i, z);
 }
 
 void setup_state(void (*func)()) {
@@ -72,6 +89,31 @@ void next_program(float time, bool change) {
   }
 }
 
+void all() {
+  for (int i = 0; i < LOGICAL_LEDS; i++) {
+    setColor(i);
+  }
+  FastLED.show();
+  delay(10);
+}
+
+int some_func(int i, int t) {
+  double freq = 0.25;
+  double phase = 0;
+  return 5 * cos(freq * t * (t - i / SPACING));
+}
+
+void sdf() {
+  for (int time = 0; time < sdf_time; time++) {
+    for (int i = 0; i < LOGICAL_LEDS; i++) {
+      setColorZ(i, z + some_func(i, time));
+    }
+    delay(10);
+  }
+
+  next_program(0, true);
+}
+
 void goLeft() {
   static int i = 0;
 
@@ -79,21 +121,22 @@ void goLeft() {
     i = 0;
   });
 
-  setColor(&leds[i]);
+  setColor(i);
   FastLED.show();
   i += 1;
 
-  next_program(25, i > NUM_LEDS - 1);
+  next_program(25, i > LOGICAL_LEDS - 1);
 }
 
+
 void goRight() {
-  static int i = NUM_LEDS - 1;
+  static int i = LOGICAL_LEDS - 1;
 
   setup_state([&i]() {
-    i = NUM_LEDS - 1;
+    i = LOGICAL_LEDS - 1;
   });
 
-  setColor(&leds[i]);
+  setColor(i);
   FastLED.show();
   i -= 1;
 
@@ -101,18 +144,18 @@ void goRight() {
 }
 
 void goOut() {
-  static int i = NUM_LEDS / 2;
+  static int i = LOGICAL_LEDS / 2;
 
   setup_state([&i]() {
-    i = NUM_LEDS / 2;
+    i = LOGICAL_LEDS / 2;
   });
 
-  setColor(&leds[i]);
-  setColor(&leds[NUM_LEDS - i - 1]);
+  setColor(i);
+  setColor(LOGICAL_LEDS - i - 1);
   FastLED.show();
   i += 1;
 
-  next_program(50, i > NUM_LEDS - 1);
+  next_program(50, i > LOGICAL_LEDS - 1);
 }
 
 void goIn() {
@@ -123,14 +166,14 @@ void goIn() {
   });
 
   if (i % 2 == 0) {
-    setColor(&leds[i / 2]);
+    setColor(i / 2);
   } else {
-    setColor(&leds[NUM_LEDS - 1 - (i - 1) / 2]);
+    setColor(LOGICAL_LEDS - 1 - (i - 1) / 2);
   }
   FastLED.show();
   i += 1;
 
-  next_program(25, i > NUM_LEDS);
+  next_program(25, i > LOGICAL_LEDS);
 }
 
 void goRandom() {
@@ -140,11 +183,11 @@ void goRandom() {
     i = 0;
   });
 
-  setColor(&leds[rand() % NUM_LEDS]);
+  setColor(rand() % LOGICAL_LEDS);
   FastLED.show();
   i += 1;
 
-  next_program(25, i > NUM_LEDS - 1);
+  next_program(25, i > LOGICAL_LEDS - 1);
 }
 
 void goCrazy() {
@@ -156,11 +199,11 @@ void goCrazy() {
 
   z += 10;
 
-  setColor(&leds[rand() % NUM_LEDS]);
+  setColor(rand() % LOGICAL_LEDS);
   FastLED.show();
   i += 1;
 
-  next_program(25, i > NUM_LEDS - 1);
+  next_program(25, i > LOGICAL_LEDS - 1);
 }
 
 void handleButton() {
@@ -176,6 +219,7 @@ void handleButton() {
 
       if (buttonState == HIGH) {
         buttonPresses++;
+        //on = !on;
       }
     }
   }
@@ -194,16 +238,20 @@ void handleDial() {
 }
 
 void loop() {
-  //handleButton();
+  handleButton();
 //  handleDial();
 
   switch (buttonPresses % 3) {
     case 0:
+      on = true;
       z++;
-    case 1:
       programs[p]();
-    case 2:
+      break;
+    case 1:
+      break;
+     case 2:
+      on = false;
+      programs[p]();
       break;
   }
 }
-
