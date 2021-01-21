@@ -2,10 +2,17 @@
 #include "state_machine.h"
 #include "movement.h"
 
-static int STUCK_POLLS = 140;
+static const int STUCK_POLLS = 140;
+static const int STUCK_INVALID_POLLS = 10;
+static const int ONE_EIGHTY_DEGS = 1337;
+
 
 static int last_distance = 0;
 static int stuck_polls = 0;
+
+static int relocate_poll;
+static int relocate_speed;
+static Direction relocate_dir ;
 
 void new_state(State st) {
   state = st;
@@ -13,6 +20,29 @@ void new_state(State st) {
   Serial.print("new state: ");
   Serial.println(StateName[st]);
   start();
+}
+
+void bounce_or_stick() {
+  with_distance([](int dist) {
+    Serial.print("dist: ");
+    Serial.println(dist);
+    if (abs(dist - last_distance) <= 5) {
+  /* Serial.print("stuck: "); */
+  /* Serial.print(dist); */
+  /* Serial.print(" --- "); */
+  /* Serial.println(stuck_polls); */
+      stuck_polls++;
+    } else {
+      last_distance = dist;
+      stuck_polls = 0;
+    }
+
+    if (dist <= 10) {
+      new_state(BOUNCE);
+    } else if (stuck_polls >= ((dist == INVALID_DISTANCE) ? STUCK_INVALID_POLLS : STUCK_POLLS)) {
+      new_state(STUCK);
+    }
+  });
 }
 
 
@@ -38,38 +68,47 @@ void enter_STUCK() {
   drive(STOP, 0);
   delay(20);
   drive(REVERSE, FAST_SPEED);
-  delay(100);
+  delay(500);
   drive(REVERSE, FASTEST_SPEED);
-  delay(1400);
+  delay(1000);
   if (rand() % 2 == 0) {
     drive(TURN_RIGHT, FAST_SPEED);
   } else {
     drive(TURN_LEFT, FAST_SPEED);
   }
-  delay(1337);
+  delay(ONE_EIGHTY_DEGS);
+}
+
+void enter_RELOCATE() {
+  relocate_speed = FAST_SPEED;
+  relocate_poll = 0;
+  if (rand() % 2 == 0) {
+    relocate_dir = DRIVE_LEFT;
+  } else {
+    relocate_dir = DRIVE_RIGHT;
+  }
+  drive(FORWARD, FASTEST_SPEED);
+  delay(20);
+  drive(relocate_dir, relocate_speed);
+}
+
+void loop_RELOCATE() {
+  const int time = 10;
+  relocate_poll += time;
+  if (relocate_poll >= ONE_EIGHTY_DEGS * 2) {
+    relocate_poll = 0;
+    relocate_speed += 10;
+    drive(relocate_dir, relocate_speed);
+  }
+
+  delay(time);
+  bounce_or_stick();
 }
 
 
 void loop_DRIVE() {
   delay(10);
-  with_distance([](int dist) {
-    if (abs(dist - last_distance) <= 5) {
-  /* Serial.print("stuck: "); */
-  /* Serial.print(dist); */
-  /* Serial.print(" --- "); */
-  /* Serial.println(stuck_polls); */
-      stuck_polls++;
-    } else {
-      last_distance = dist;
-      stuck_polls = 0;
-    }
-
-    if (dist <= 4) {
-      new_state(BOUNCE);
-    } else if (stuck_polls >= STUCK_POLLS) {
-      new_state(STUCK);
-    }
-  });
+  bounce_or_stick();
 }
 
 void loop_BOUNCE() {
@@ -81,6 +120,24 @@ void loop_TURN() {
 }
 
 void loop_STUCK() {
+  if (rand() % 2 == 0) {
+    new_state(RELOCATE);
+  } else {
+    new_state(RANDOM_TURN);
+  }
+}
+
+void enter_RANDOM_TURN() {
+  if (rand() % 2 == 0) {
+    drive(TURN_RIGHT, FAST_SPEED);
+  } else {
+    drive(TURN_LEFT, FAST_SPEED);
+  }
+  delay(ONE_EIGHTY_DEGS / 2);
+  drive(STOP, 0);
+}
+
+void loop_RANDOM_TURN() {
   new_state(DRIVE);
 }
 

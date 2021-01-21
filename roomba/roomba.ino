@@ -12,13 +12,11 @@ void setup() {
     analogWrite(11,LOW);
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
-    pinMode(13, OUTPUT);
-    digitalWrite(13, HIGH);
 
     Serial.begin(9600);
-    Serial.println("hi erin!");
+    Serial.println("hello world");
 
-    new_state(DRIVE);
+    new_state(RELOCATE);
     with_distance([](int dist){});
 }
 
