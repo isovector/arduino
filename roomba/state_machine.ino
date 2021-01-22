@@ -24,8 +24,8 @@ void new_state(State st) {
 
 void bounce_or_stick() {
   with_distance([](int dist) {
-    Serial.print("dist: ");
-    Serial.println(dist);
+    /* Serial.print("dist: "); */
+    /* Serial.println(dist); */
     if (abs(dist - last_distance) <= 5) {
   /* Serial.print("stuck: "); */
   /* Serial.print(dist); */
@@ -37,7 +37,7 @@ void bounce_or_stick() {
       stuck_polls = 0;
     }
 
-    if (dist <= 10) {
+    if (dist <= 4) {
       new_state(BOUNCE);
     } else if (stuck_polls >= ((dist == INVALID_DISTANCE) ? STUCK_INVALID_POLLS : STUCK_POLLS)) {
       new_state(STUCK);

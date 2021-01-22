@@ -1,9 +1,16 @@
 #include "movement.h"
+/* #include <vector> */
 
 static const int RIGHT_WHEEL_FORWARD = 10;
 static const int RIGHT_WHEEL_BACKWARD = 11;
 static const int LEFT_WHEEL_FORWARD = 6;
 static const int LEFT_WHEEL_BACKWARD = 9;
+
+static const long MAX_RANGE = 32;
+
+static const float smoothing_coef = 0.8;
+static long next_pred = INVALID_DISTANCE;
+
 
 void with_distance(void (*callback)(int)) {
   digitalWrite(trigPin, HIGH);
@@ -12,15 +19,15 @@ void with_distance(void (*callback)(int)) {
   long duration = pulseIn(echoPin, HIGH);
   long distance = duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
 
-  if (valid_distance(distance)) {
-    callback(distance);
-  } else {
-    callback(INVALID_DISTANCE);
-  }
-}
+  if (distance > MAX_RANGE) distance = MAX_RANGE;
 
-bool valid_distance(int dist) {
-  return dist < 2300;
+  if (next_pred == INVALID_DISTANCE) {
+    next_pred = distance;
+  } else {
+    next_pred = smoothing_coef * distance + (1 - smoothing_coef) * next_pred;
+  }
+
+  callback(next_pred);
 }
 
 void drive(Direction dir, int speed) {
