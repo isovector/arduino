@@ -2,8 +2,8 @@
 #include "state_machine.h"
 #include "movement.h"
 
-static const int STUCK_POLLS = 140;
-static const int STUCK_INVALID_POLLS = 10;
+static const int STUCK_POLLS = 100;
+static const int STUCK_INVALID_POLLS = 5;
 static const int ONE_EIGHTY_DEGS = 1337;
 
 
@@ -52,11 +52,13 @@ void enter_DRIVE() {
 
 void enter_BOUNCE() {
   drive(STOP, 0);
-  delay(20);
+  delay(200);
   drive(REVERSE, FAST_SPEED);
   delay(100);
   drive(REVERSE, FASTEST_SPEED);
-  delay(650);
+  delay(250);
+  drive(STOP, 0);
+  delay(200);
 }
 
 void enter_TURN() {
@@ -76,7 +78,7 @@ void enter_STUCK() {
   } else {
     drive(TURN_LEFT, FAST_SPEED);
   }
-  delay(ONE_EIGHTY_DEGS);
+  delay(ONE_EIGHTY_DEGS / 4);
 }
 
 void enter_RELOCATE() {
@@ -88,7 +90,7 @@ void enter_RELOCATE() {
     relocate_dir = DRIVE_RIGHT;
   }
   drive(FORWARD, FASTEST_SPEED);
-  delay(20);
+  delay(100);
   drive(relocate_dir, relocate_speed);
 }
 
