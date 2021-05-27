@@ -20,7 +20,7 @@ char auth[] = "M4YDcZwmQbXDBBIy4zFkg4u-9I_YlS6r";
 
 #define SINE_SIZE 128
 
-uint8_t sine_table[SINE_SIZE] =
+const uint8_t sine_table[SINE_SIZE] =
   { 0x80,0x86,0x8c,0x92,0x98,0x9e,0xa5,0xaa,
     0xb0,0xb6,0xbc,0xc1,0xc6,0xcb,0xd0,0xd5,
     0xda,0xde,0xe2,0xe6,0xea,0xed,0xf0,0xf3,
@@ -45,11 +45,13 @@ uint8_t sine_table[SINE_SIZE] =
 
 
 CRGB leds[PHYSICAL_LEDS];
-CRGB color;
+CRGB color = CRGB(255, 0, 0);
 
 int intensity = 255;
 
-typedef int fixed;
+typedef int16_t fixed;
+typedef uint16_t ufixed;
+typedef uint16_t time;
 
 
 class Program {
@@ -60,12 +62,16 @@ public:
     return CRGB(0, 0, 0);
   };
 
-  virtual void evolve(fixed delta) {
+  virtual void evolve(time delta) {
     return;
   }
 };
 
-int ftoi(fixed f) {
+int16_t ftoi(fixed f) {
+  return f >> 4;
+}
+
+uint16_t ftoi(ufixed f) {
   return f >> 4;
 }
 
@@ -74,25 +80,26 @@ fixed itof(int big, int small) {
   return (big << 4) | (small >> 6);
 }
 
-int fmul(fixed a, fixed b) {
+template<typename T>
+T fmul(T a, T b) {
   // each fixed contributes 4 fixed digits, but we only want 4,
   // so elimiate the bottom 4
   return (a * b) >> 4;
 }
 
-fixed milli_diff(unsigned long a, unsigned long b) {
+time milli_diff(unsigned long a, unsigned long b) {
   // want to divide by 1000, which is roughly 2^10
   // since the fixed point is 4, we need to chop off 6 bits
   return (a - b) >> 6;
 }
 
-uint16_t sine(fixed f) {
+uint16_t sine(time f) {
   return sine_table[ftoi(f) % SINE_SIZE];
 }
 
 class Strobe : public Program {
 public:
-  Strobe(Program *c, int pos, fixed cycle_time, int falloff)
+  Strobe(Program *c, int pos, time cycle_time, int falloff)
     : m_color_provider(c), m_pos(pos), m_time(0), m_cycle_time(cycle_time), m_falloff(falloff)
   {}
 
@@ -106,37 +113,17 @@ public:
     int d = abs(v - m_pos);
     int brightness = sine(fmul(m_time, m_cycle_time));
 
-    if (0 <= d  && d < m_falloff) {
-      return CRGB( color.r & brightness
-                 , color.g & brightness
-                 , color.b & brightness
+    if (brightness > 0 && 0 <= d  && d < m_falloff) {
+      return CRGB( color.r * 255 / brightness
+                 , color.g * 255 / brightness
+                 , color.b * 255 / brightness
                  );
     }
 
     return {0, 0, 0};
-
-    // DebugSerial.println(brightness);
-
-
-
-
-
-
-
-
-//     const int pos = ftoi(m_pos);
-//     if (pos == v) {
-//       return color;
-//     }
-
-//     const int d = (pos - v) * ((m_vel >= 0) ? 1 : -1);
-//     if (d >= 0 && d < m_tail) {
-//       return CRGB(color.r / d, color.g / d, color.b / d);
-//     }
-
   }
 
-  void evolve(fixed delta) {
+  void evolve(time delta) {
     m_color_provider->evolve(delta);
     m_time += delta;
   }
@@ -144,14 +131,14 @@ public:
 private:
   Program *m_color_provider;
   int m_pos;
-  fixed m_time;
-  fixed m_cycle_time;
+  time m_time;
+  time m_cycle_time;
   int m_falloff;
 };
 
 class EvolveColor : public Program {
 public:
-  EvolveColor(fixed phase, fixed r, fixed g, fixed b, int v_factor)
+  EvolveColor(ufixed phase, ufixed r, ufixed g, ufixed b, int v_factor)
     : m_phase(phase), m_r(r), m_g(g), m_b(b), m_v_factor(v_factor)
     {}
 
@@ -160,9 +147,9 @@ public:
 
   CRGB eval(int v) const {
     // TODO(sandy): should use sine
-    int r = sine_table[(ftoi(m_phase * m_r) + v * m_v_factor) % SINE_SIZE];
-    int g = sine_table[(ftoi(m_phase * m_g) + v * m_v_factor) % SINE_SIZE];
-    int b = sine_table[(ftoi(m_phase * m_b) + v * m_v_factor) % SINE_SIZE];
+    int r = sine_table[(ftoi(fmul(m_phase, m_r)) + v * m_v_factor) % SINE_SIZE];
+    int g = sine_table[(ftoi(fmul(m_phase, m_g)) + v * m_v_factor) % SINE_SIZE];
+    int b = sine_table[(ftoi(fmul(m_phase, m_b)) + v * m_v_factor) % SINE_SIZE];
 
     return CRGB(r, g, b);
   }
@@ -172,17 +159,31 @@ public:
   }
 
 private:
-  fixed m_phase;
-  fixed m_r;
-  fixed m_g;
-  fixed m_b;
+  ufixed m_phase;
+  ufixed m_r;
+  ufixed m_g;
+  ufixed m_b;
   int m_v_factor;
 };
 
-Program *evolve_color(fixed p, fixed r, fixed g, fixed b, int v_factor) {
+Program *evolve_color(ufixed p, ufixed r, ufixed g, ufixed b, int v_factor) {
   return new EvolveColor(p, r, g, b, v_factor);
 }
 
+class GlobalColor : public Program {
+public:
+  GlobalColor() {}
+
+  ~GlobalColor() {
+  }
+
+  CRGB eval(int v) const {
+    return color;
+  }
+
+  void evolve(time delta) {
+  }
+};
 
 
 class ConstColor : public Program {
@@ -197,7 +198,7 @@ public:
     return m_color;
   }
 
-  void evolve(fixed delta) {
+  void evolve(time delta) {
   }
 
 private:
@@ -243,7 +244,7 @@ public:
           );
   }
 
-  void evolve(fixed delta) {
+  void evolve(time delta) {
     for (int p = 0; p < N; p++) {
       if (!m_programs[p]) break;
 
@@ -281,7 +282,7 @@ public:
     return CRGB(0, 0, 0);
   }
 
-  void evolve(fixed delta) {
+  void evolve(time delta) {
     m_color_provider->evolve(delta);
 
     int pos = ftoi(m_pos);
@@ -293,7 +294,7 @@ public:
       m_vel = abs(m_vel);
     }
 
-    m_pos += fmul(m_vel, delta);
+    m_pos += fmul(m_vel, static_cast<fixed>(delta));
   }
 
 private:
@@ -321,22 +322,17 @@ void setup()
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
 
-  // Blynk will work through Serial
-  // 9600 is for HC-06. For HC-05 default speed is 38400
-  // Do not read or write this serial manually in your sketch
-  // Serial.begin(9600);
-
-  programs[0] = new Strobe(const_color({255, 0, 0}), 300, itof(10, 0), 10);
-  // programs[1] = new Bounce(const_color({10, 100, 10}), 5, itof(15, 0), 8);
-  // programs[2] = new Bounce(const_color({0, 0xaa, 0xcc}), 80, -itof(15, 0), 10);
-  // programs[3] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(50, 500), 30);
-  // programs[4] = new Bounce(evolve_color(0, 10, 20, 30, 2), LOGICAL_LEDS - 1, -itof(20, 500), 16);
-  // programs[5] = new Bounce(evolve_color(0, 70, 40, 10, 1), LOGICAL_LEDS - 1, -itof(28, 500), 30);
-  // programs[6] = new Bounce(evolve_color(0, 16, 17, 18, 0), LOGICAL_LEDS - 1, -itof(14, 500), 4);
+  programs[0] = new GlobalColor();
+  /* programs[0] = new Strobe(new GlobalColor(), 100, itof(5, 0), 10); */
+  /* programs[1] = new Bounce(const_color({0, 0xaa, 0xcc}), 80, -itof(15, 0), 10); */
+/*   programs[3] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(50, 500), 30); */
+/*   programs[4] = new Bounce(evolve_color(0, 10, 20, 30, 2), LOGICAL_LEDS - 1, -itof(20, 500), 16); */
+/*   programs[5] = new Bounce(evolve_color(0, 70, 40, 10, 1), LOGICAL_LEDS - 1, -itof(28, 500), 30); */
+/*   programs[6] = new Bounce(evolve_color(0, 16, 17, 18, 0), LOGICAL_LEDS - 1, -itof(14, 500), 4); */
 
   program = new Many<1>(programs);
 
-  /* Blynk.begin(Serial, auth); */
+  Blynk.begin(Serial, auth);
 }
 
 
@@ -358,13 +354,6 @@ void push_lights() {
   FastLED[1].showLeds(intensity);
 }
 
-/* CRGB bounce(const CRGB &c, const int x, const int v) { */
-/*   if (x == v) { */
-/*     return c; */
-/*   } */
-/*   return CRGB(0, 0, 0); */
-/* } */
-
 
 
 BLYNK_WRITE(V2)
@@ -373,12 +362,14 @@ BLYNK_WRITE(V2)
   int g = param[1].asInt();
   int b = param[2].asInt();
   color = CRGB(r, g, b);
+  push_lights();
   // setColor();
 }
 
 BLYNK_WRITE(V3)
 {
   intensity = param.asInt();
+  push_lights();
   // setColor();
 }
 
@@ -386,18 +377,14 @@ unsigned long last_time;
 
 void loop()
 {
-  push_lights();
+  /* push_lights(); */
 
-  unsigned long now = millis();
-  fixed delta = max(1, milli_diff(now, last_time));
-  program->evolve(delta);
-  // DebugSerial.println(delta);
+  /* unsigned long now = millis(); */
+  /* time delta = max(1, milli_diff(now, last_time)); */
+  /* program->evolve(delta); */
+  /* last_time = now; */
 
-  last_time = now;
-
-  // delay(round(time));
-
-  /* Blynk.run(); */
+  Blynk.run();
 }
 
 
