@@ -7,6 +7,12 @@
 #define PHYSICAL_LEDS 300
 #define LED_PIN 7
 
+#include <SoftwareSerial.h>
+SoftwareSerial DebugSerial(0, 1); // RX, TX */
+
+#define DEBUG(x) (DebugSerial.println(x))
+
+
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PHYSICAL_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(PHYSICAL_LEDS, LED_PIN + 1, NEO_GRB + NEO_KHZ800);
@@ -26,16 +32,16 @@ class Program {
 public:
   virtual ~Program() {}
 
-  virtual CRGB eval(int v) const {
+  virtual CRGB eval(const int v) const {
     return {0, 0, 0};
   };
 
-  uint32_t eval_uint(int v) const {
+  uint32_t eval_uint(const int v) const {
     CRGB c = eval(v);
     return strip.Color(c.r, c.g, c.b);
   }
 
-  virtual void evolve(time delta) {
+  virtual void evolve(const time delta) {
     return;
   }
 };

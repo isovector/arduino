@@ -4,19 +4,14 @@
 #include "Many.h"
 #include "Bounce.h"
 
-/* Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800); */
-
-Program *programs[5];
-
 void setup() {
+  last_time = millis();
 
-  programs[0] = new Bounce(const_color({0, 0xaa, 0xcc}), 80, -itof(15, 0), 10);
-  programs[1] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(50, 500), 30);
-  programs[2] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(20, 500), 16);
-  programs[3] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(28, 500), 30);
-  programs[4] = new Bounce(const_color({255, 128, 0}), LOGICAL_LEDS - 1, -itof(14, 500), 4);
+  Many<4> *many = new Many<4>();
+  many->add(new Bounce(const_color({0, 0xaa, 0xcc}), 80, -itof(15, 0), 10));
+  many->add(new Bounce(const_color({0, 0xaa, 0xcc}), 100, -itof(15, 0), 10));
+  program = many;
 
-  program = new Many<5>(programs);
   strip.begin();
 }
 
@@ -28,6 +23,7 @@ void loop() {
   program->evolve(delta);
   last_time = now;
   push_lights();
+
 }
 
 

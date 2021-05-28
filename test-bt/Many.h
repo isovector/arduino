@@ -6,9 +6,9 @@
 template <int N>
 class Many : public Program {
 public:
-  Many(Program *p[N]) {
+  Many() : m_count(0), m_color({0, 127, 0}) {
     for (int i = 0; i < N; i++) {
-      m_programs[i] = p[i];
+      m_programs[i] = NULL;
     }
   }
 
@@ -18,10 +18,10 @@ public:
     }
   }
 
-  CRGB eval(int v) const {
-    int r = 0, g = 0, b = 0;
+  CRGB eval(const int v) const {
+    uint16_t r = 0, g = 0, b = 0;
 
-    for (int p = 0; p < N; p++) {
+    for (int p = 0; p < m_count; p++) {
       if (!m_programs[p]) break;
 
       CRGB rgb = m_programs[p]->eval(v);
@@ -37,7 +37,13 @@ public:
           );
   }
 
-  void evolve(time delta) {
+  void add(Program *p) {
+    if (m_count < N) {
+      m_programs[m_count++] = p;
+    }
+  }
+
+  void evolve(const time delta) {
     for (int p = 0; p < N; p++) {
       if (!m_programs[p]) break;
 
@@ -46,7 +52,9 @@ public:
   }
 
 private:
-    Program *m_programs[N];
+  CRGB m_color;
+  Program *m_programs[N];
+  uint8_t m_count;
 };
 
 
