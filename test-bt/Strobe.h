@@ -2,7 +2,6 @@
 #define STROBE_H
 
 #include "Program.h"
-#include "Sine.h"
 #include "Fixed.h"
 
 class Strobe : public Program {
@@ -19,12 +18,12 @@ public:
     const CRGB color = m_color_provider->eval(v);
 
     int d = abs(v - m_pos);
-    int brightness = sine(fmul(m_time, m_cycle_time));
+    uint16_t brightness = strip.sine8(m_time * m_cycle_time);
 
     if (brightness > 0 && 0 <= d  && d < m_falloff) {
-      return CRGB( color.r * 255 / brightness
-                 , color.g * 255 / brightness
-                 , color.b * 255 / brightness
+      return CRGB( (color.r * brightness) >> 8
+                 , (color.g * brightness) >> 8
+                 , (color.b * brightness) >> 8
                  );
     }
 

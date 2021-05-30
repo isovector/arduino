@@ -15,16 +15,26 @@ SoftwareSerial DebugSerial(0, 1); // RX, TX */
 
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PHYSICAL_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(PHYSICAL_LEDS, LED_PIN + 1, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(LOGICAL_LEDS - PHYSICAL_LEDS, LED_PIN + 2, NEO_GRB + NEO_KHZ800);
 
 
 struct CRGB {
   CRGB(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {
   }
 
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
+  CRGB(uint32_t c) : rgb(c) {
+  }
+
+
+  union {
+    struct {
+      uint8_t b;
+      uint8_t g;
+      uint8_t r;
+      uint8_t _unused;
+    };
+    uint32_t rgb;
+  };
 };
 
 
@@ -38,7 +48,7 @@ public:
 
   uint32_t eval_uint(const int v) const {
     CRGB c = eval(v);
-    return strip.Color(c.r, c.g, c.b);
+    return c.rgb;
   }
 
   virtual void evolve(const time delta) {
@@ -55,16 +65,22 @@ Program *program = NULL;
 //
 // due to memory restrictions, we have to use the same buffer to push data to each
 // strip, so this must be a pure function
+
+bool do_left = true;
 void push_lights() {
+  if (do_left) {
   for (int i = 0; i < PHYSICAL_LEDS; i++) {
     strip.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
   }
   strip.show();
+  } else {
 
   for (int i = PHYSICAL_LEDS; i < LOGICAL_LEDS; i++) {
-    strip2.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
+    strip2.setPixelColor(i - PHYSICAL_LEDS, program->eval_uint(i));
   }
   strip2.show();
+  }
+  do_left = !do_left;
 }
 
 

@@ -1,21 +1,35 @@
 #include "Adafruit_NeoPixel.h"
 
 #include "ConstColor.h"
+#include "EvolveColor.h"
 #include "Many.h"
 #include "Bounce.h"
+#include "Strobe.h"
+
+unsigned long last_time = 0;
 
 void setup() {
   last_time = millis();
 
   Many<4> *many = new Many<4>();
-  many->add(new Bounce(const_color({0, 0xaa, 0xcc}), 80, -itof(15, 0), 10));
-  many->add(new Bounce(const_color({0, 0xaa, 0xcc}), 100, -itof(15, 0), 10));
+  /* many->add(const_color({0, 0, 0xff})); */
+  /* many->add(evolve_color(0, 160, 255, 128, 100)); */
+  /* many->add(new Bounce(evolve_color(0, 160, 255, 128, 100), 100, -itof(15, 0), 10)); */
+
+  // chair
+  many->add(new Strobe(const_color({255, 0, 0}), 160, 1, 60));
+  // chair
+  many->add(new Strobe(const_color({0, 255, 0}), 30, 1, 30));
+  // couch r
+  many->add(new Strobe(const_color({0, 0, 255}), 430, 1, 30));
+  // couch l
+  many->add(new Strobe(const_color({255, 0, 0}), 500, 1, 30));
+
   program = many;
 
   strip.begin();
+  strip2.begin();
 }
-
-unsigned long last_time = 0;
 
 void loop() {
   unsigned long now = millis();
