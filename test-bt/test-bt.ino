@@ -5,6 +5,7 @@
 #include "Many.h"
 #include "Bounce.h"
 #include "Strobe.h"
+#include "Aurora.h"
 
 unsigned long last_time = 0;
 
@@ -16,17 +17,18 @@ void setup() {
   delete *strip2.getPixels();
   *strip2.getPixels() = *strip.getPixels();
 
-  Many<7> *many = new Many<7>();
-  /* many->add(const_color({0, 0, 0xff})); */
-  many->add(evolve_color(0, 160, 255, 5, 50));
-  Program *ec = evolve_color(0, 160, 255, 255, 200);
-  many->add(new Bounce(ec, 100, -itof(30, 0), 20));
-  many->add(new Bounce(ec, 140, -itof(45, 0), 20));
-  many->add(new Bounce(ec, 180, -itof(36, 0), 20));
-  many->add(new Bounce(ec, 220, -itof(40, 0), 20));
-  many->add(new Bounce(ec, 260, -itof(42, 0), 20));
-  many->add(new Bounce(ec, 300, -itof(50, 0), 20));
-  program = many;
+  /* Many<7> *many = new Many<7>(); */
+  /* /1* many->add(const_color({0, 0, 0xff})); *1/ */
+  /* /1* many->add(evolve_color(0, 40, 255, 5, 50)); *1/ */
+  /* many->add(new Aurora()); */
+  /* Program *ec = evolve_color(0, 160, 255, 50, 200); */
+  /* many->add(new Bounce(ec, 100, -itof(10, 0), 30)); */
+  /* many->add(new Bounce(ec, 140, -itof(25, 0), 30)); */
+  /* many->add(new Bounce(ec, 180, -itof(26, 0), 30)); */
+  /* many->add(new Bounce(ec, 220, -itof(20, 0), 30)); */
+  /* many->add(new Bounce(ec, 260, -itof(22, 0), 30)); */
+  /* many->add(new Bounce(ec, 300, -itof(30, 0), 30)); */
+  program = new Aurora();
   /* many->add(new Bounce(evolve_color(0, 160, 255, 128, 200), 180, -itof(15, 0), 20)); */
 
 /*   // chair */
@@ -45,7 +47,13 @@ void loop() {
   time delta = max(1, milli_diff(now, last_time));
   program->evolve(delta);
   last_time = now;
-  push_lights();
+
+  if (program->needs_raw_frame_buffer()) {
+    strip.show();
+    strip2.show();
+  } else {
+    push_lights();
+  }
 
 }
 

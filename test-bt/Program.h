@@ -65,6 +65,10 @@ public:
     return {0, LOGICAL_LEDS};
   }
 
+  virtual bool needs_raw_frame_buffer() const {
+    return false;
+  }
+
 
   virtual void evolve(const time delta) {
     return;
