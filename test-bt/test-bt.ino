@@ -11,24 +11,33 @@ unsigned long last_time = 0;
 void setup() {
   last_time = millis();
 
-  Many<4> *many = new Many<4>();
-  /* many->add(const_color({0, 0, 0xff})); */
-  /* many->add(evolve_color(0, 160, 255, 128, 100)); */
-  /* many->add(new Bounce(evolve_color(0, 160, 255, 128, 100), 100, -itof(15, 0), 10)); */
-
-  // chair
-  many->add(new Strobe(const_color({255, 0, 0}), 160, 1, 60));
-  // chair
-  many->add(new Strobe(const_color({0, 255, 0}), 30, 1, 30));
-  // couch r
-  many->add(new Strobe(const_color({0, 0, 255}), 430, 1, 30));
-  // couch l
-  many->add(new Strobe(const_color({255, 0, 0}), 500, 1, 30));
-
-  program = many;
-
   strip.begin();
   strip2.begin();
+  delete *strip2.getPixels();
+  *strip2.getPixels() = *strip.getPixels();
+
+  Many<7> *many = new Many<7>();
+  /* many->add(const_color({0, 0, 0xff})); */
+  many->add(evolve_color(0, 160, 255, 5, 50));
+  Program *ec = evolve_color(0, 160, 255, 255, 200);
+  many->add(new Bounce(ec, 100, -itof(30, 0), 20));
+  many->add(new Bounce(ec, 140, -itof(45, 0), 20));
+  many->add(new Bounce(ec, 180, -itof(36, 0), 20));
+  many->add(new Bounce(ec, 220, -itof(40, 0), 20));
+  many->add(new Bounce(ec, 260, -itof(42, 0), 20));
+  many->add(new Bounce(ec, 300, -itof(50, 0), 20));
+  program = many;
+  /* many->add(new Bounce(evolve_color(0, 160, 255, 128, 200), 180, -itof(15, 0), 20)); */
+
+/*   // chair */
+/*   many->add(new Strobe(const_color({255, 0, 0}), 160, 1, 60)); */
+/*   // chair */
+/*   many->add(new Strobe(const_color({0, 255, 0}), 30, 1, 30)); */
+/*   // couch r */
+/*   many->add(new Strobe(const_color({0, 0, 255}), 430, 1, 30)); */
+/*   // couch l */
+/*   many->add(new Strobe(const_color({255, 0, 0}), 500, 1, 30)); */
+
 }
 
 void loop() {

@@ -37,6 +37,16 @@ struct CRGB {
   };
 };
 
+struct Interval {
+
+  Interval(int16_t start, int16_t end) :
+    start(start), end(end)
+  {}
+
+  int16_t start;
+  int16_t end;
+};
+
 
 class Program {
 public:
@@ -50,6 +60,11 @@ public:
     CRGB c = eval(v);
     return c.rgb;
   }
+
+  virtual Interval canvas() const {
+    return {0, LOGICAL_LEDS};
+  }
+
 
   virtual void evolve(const time delta) {
     return;
@@ -69,16 +84,15 @@ Program *program = NULL;
 bool do_left = true;
 void push_lights() {
   if (do_left) {
-  for (int i = 0; i < PHYSICAL_LEDS; i++) {
-    strip.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
-  }
-  strip.show();
+    for (int i = 0; i < PHYSICAL_LEDS; i++) {
+      strip.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
+    }
+    strip.show();
   } else {
-
-  for (int i = PHYSICAL_LEDS; i < LOGICAL_LEDS; i++) {
-    strip2.setPixelColor(i - PHYSICAL_LEDS, program->eval_uint(i));
-  }
-  strip2.show();
+    for (int i = PHYSICAL_LEDS; i < LOGICAL_LEDS; i++) {
+      strip2.setPixelColor(i - PHYSICAL_LEDS, program->eval_uint(i));
+    }
+    strip2.show();
   }
   do_left = !do_left;
 }

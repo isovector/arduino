@@ -23,6 +23,11 @@ public:
 
     for (int p = 0; p < m_count; p++) {
       if (!m_programs[p]) break;
+      Interval i = m_programs[p]->canvas();
+
+      if (!(i.start <= v && v <= i.end)) {
+        continue;
+      }
 
       CRGB rgb = m_programs[p]->eval(v);
       r += rgb.r;

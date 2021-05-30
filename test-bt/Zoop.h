@@ -1,16 +1,16 @@
-#ifndef BOUNCE_H
-#define BOUNCE_H
+#ifndef ZOOP_H
+#define ZOOP_H
 
 #include "Fixed.h"
 #include "Program.h"
 
-class Bounce : public Program {
+class Zoop : public Program {
 public:
-  Bounce(Program *c, int pos, fixed dir, int tail)
+  Zoop(Program *c, int pos, fixed dir, int tail)
     : m_color_provider(c), m_pos(itof(pos, 0)), m_vel(dir), m_tail(tail)
   {}
 
-  ~Bounce() {
+  ~Zoop() {
     delete m_color_provider;
   }
 
@@ -29,25 +29,14 @@ public:
     return CRGB(0, 0, 0);
   }
 
-  Interval canvas() const {
-    int pos = ftoi(m_pos);
-    if (m_vel < 0) {
-      return {pos, pos + m_tail};
-    } else {
-      return {pos - m_tail, pos};
-    }
-  }
-
   void evolve(time delta) {
     m_color_provider->evolve(delta);
 
     int pos = ftoi(m_pos);
     if (pos > LOGICAL_LEDS - 1 + m_tail) {
-      m_pos = itof(LOGICAL_LEDS - 1, 0);
-      m_vel = -abs(m_vel);
-    } else if (pos < -m_tail) {
       m_pos = itof(0, 0);
-      m_vel = abs(m_vel);
+    } else if (pos < -m_tail) {
+      m_pos = itof(LOGICAL_LEDS - 1, 0);
     }
 
     m_pos += fmul(m_vel, static_cast<fixed>(delta));
