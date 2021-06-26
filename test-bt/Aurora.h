@@ -8,31 +8,38 @@ class Aurora : public Program {
 public:
   Aurora()
     : m_pos(0), m_phase(0)
-    {}
+    { }
 
   ~Aurora() {
   }
 
   CRGB eval(const int v) const {
-    return {0, 0, 0};
-  }
-
-  bool needs_raw_frame_buffer() const {
-    return true;
+    return m_data[v];
   }
 
   void evolve(const time delta) {
-    // m_pos = (m_pos + 3) % (3 * PHYSICAL_LEDS);
-    m_pos = (rand() % PHYSICAL_LEDS) * 3;
+    m_pos = (m_pos + 1) % LOGICAL_LEDS;
     m_phase++;
-    uint8_t *cs = *strip.getPixels();
-    cs[m_pos] = strip.sine8(ftoi(10 + m_phase) * 4);
-    cs[m_pos + 1] = strip.sine8(ftoi(50 + m_phase) * 6);
-    cs[m_pos + 2] = strip.sine8(ftoi(150 + m_phase) * 14);
-    delay(50);
+
+    const int intensity = 48;
+    const int threshold = intensity * 2;
+    const int r = cos(m_phase * 0.02) * intensity + intensity;
+    const int g = sin(m_phase * 0.03  + 10) * intensity + intensity;
+    const int b = sin(m_phase * 0.05) * intensity + intensity;
+    float div = 1;
+
+    if (r + g + b > threshold) {
+      div = 1.8;
+    }
+
+    m_data[m_pos] = { (int)(r / div)
+                    , (int)(g / div)
+                    , (int)(b / div)
+                    };
   }
 
 private:
+  CRGB m_data[LOGICAL_LEDS];
   uint16_t m_pos;
   ufixed m_phase;
 };

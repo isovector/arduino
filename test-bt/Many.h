@@ -14,6 +14,7 @@ public:
 
   ~Many() {
     for (int i = 0; i < N; i++) {
+      if (!m_programs[i]) break;
       delete m_programs[i];
     }
   }

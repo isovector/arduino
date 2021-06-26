@@ -1,16 +1,12 @@
 #ifndef PROGRAM_H
 #define PROGRAM_H
 
+#include "Adafruit_NeoPixel.h"
 #include "Fixed.h"
 
 #define LOGICAL_LEDS (300 + 300 - 49)
 #define PHYSICAL_LEDS 300
 #define LED_PIN 7
-
-#include <SoftwareSerial.h>
-SoftwareSerial DebugSerial(0, 1); // RX, TX */
-
-#define DEBUG(x) (DebugSerial.println(x))
 
 
 
@@ -19,6 +15,9 @@ Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(LOGICAL_LEDS - PHYSICAL_LEDS, LED_P
 
 
 struct CRGB {
+  CRGB() : rgb(0) {
+  }
+
   CRGB(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {
   }
 
@@ -65,11 +64,6 @@ public:
     return {0, LOGICAL_LEDS};
   }
 
-  virtual bool needs_raw_frame_buffer() const {
-    return false;
-  }
-
-
   virtual void evolve(const time delta) {
     return;
   }
@@ -78,27 +72,15 @@ public:
 Program *program = NULL;
 
 
-// run the function to generate every light on the logical strip
-// since 0 on the physical strips is in the middle of the room, we map idx 0 to
-// (PHYSICAL_LEDS - 1) on strip 1
-//
-// due to memory restrictions, we have to use the same buffer to push data to each
-// strip, so this must be a pure function
-
-bool do_left = true;
 void push_lights() {
-  if (do_left) {
-    for (int i = 0; i < PHYSICAL_LEDS; i++) {
-      strip.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
-    }
-    strip.show();
-  } else {
-    for (int i = PHYSICAL_LEDS; i < LOGICAL_LEDS; i++) {
-      strip2.setPixelColor(i - PHYSICAL_LEDS, program->eval_uint(i));
-    }
-    strip2.show();
+  for (int i = 0; i < PHYSICAL_LEDS; i++) {
+    strip.setPixelColor(i, program->eval_uint(PHYSICAL_LEDS - 1 - i));
   }
-  do_left = !do_left;
+  strip.show();
+  for (int i = PHYSICAL_LEDS; i < LOGICAL_LEDS; i++) {
+    strip2.setPixelColor(i - PHYSICAL_LEDS, program->eval_uint(i));
+  }
+  strip2.show();
 }
 
 
