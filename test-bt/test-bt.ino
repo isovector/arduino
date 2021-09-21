@@ -5,6 +5,7 @@
 #include "Strobe.h"
 #include "Aurora.h"
 #include "GlobalColor.h"
+#include "Erin.h"
 
 /* #include "Remote.h" */
 
@@ -12,15 +13,16 @@
 void setNexus() {
   delete program;
   Many<7> *many = new Many<7>();
-  many->add(evolve_color(0, 160, 255, 5, 120));
+  /* many->add(evolve_color(0, 160, 255, 5, 120)); */
+  many->add(new Aurora());
   Program *ec = evolve_color(0, 160, 255, 50, 200);
-  many->add(new Bounce(ec, 100, -itof(10, 0), 30));
-  many->add(new Bounce(ec, 140, -itof(25, 0), 30));
-  many->add(new Bounce(ec, 180, -itof(26, 0), 30));
-  many->add(new Bounce(ec, 220, -itof(20, 0), 30));
-  many->add(new Bounce(ec, 260, -itof(22, 0), 30));
-  many->add(new Bounce(ec, 300, -itof(30, 0), 30));
-  program = many;
+  many->add(new Bounce(ec, 100, -itof(5, 15), 30));
+  many->add(new Bounce(ec, 140, -itof(7, 15), 30));
+  many->add(new Bounce(ec, 180, -itof(5, 0), 30));
+  many->add(new Bounce(ec, 220, -itof(7, 0), 30));
+  many->add(new Bounce(ec, 260, -itof(11, 0), 30));
+  many->add(new Bounce(ec, 300, -itof(13, 0), 30));
+  program = new Erin();
 }
 
 void setAurora() {
@@ -33,6 +35,8 @@ void setGlobal() {
   program = new GlobalColor();
 }
 
+#include "Bluetooth.h"
+
 
 unsigned long last_time = 0;
 
@@ -43,9 +47,11 @@ void setup() {
   strip2.begin();
 
   program = new GlobalColor();
-  /* setNexus(); */
-  setAurora();
+  setNexus();
+  /* setAurora(); */
   last_time = millis();
+
+  setup_bluetooth();
 
 /*   // chair */
 /*   many->add(new Strobe(const_color({255, 0, 0}), 160, 1, 60)); */
@@ -88,5 +94,7 @@ void loop() {
   last_time = now;
 
   push_lights();
+
+  loop_bluetooth();
 }
 

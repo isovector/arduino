@@ -4,6 +4,7 @@
 #include "Program.h"
 
 CRGB global_color = {0, 0, 0};
+int global_intensity = 255;
 
 class GlobalColor : public Program {
 public:

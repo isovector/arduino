@@ -3,6 +3,13 @@
 
 #include "Program.h"
 
+enum AuroraState
+  { GO_LEFT = 0
+  , GO_RIGHT
+  , GO_OUT
+  , GO_IN
+  };
+
 
 class Aurora : public Program {
 public:
@@ -17,25 +24,24 @@ public:
     return m_data[v];
   }
 
+  CRGB makeZ(ufixed z) const {
+    const int intensity = 48;
+    const int threshold = intensity * 2;
+    const int r = cos(z * 0.02) * intensity + intensity;
+    const int g = sin(z * 0.03  + 10) * intensity + intensity;
+    const int b = sin(z * 0.05) * intensity + intensity;
+
+    return { (int)r
+           , (int)g
+           , (int)b
+           };
+  }
+
+
   void evolve(const time delta) {
     m_pos = (m_pos + 1) % LOGICAL_LEDS;
     m_phase++;
-
-    const int intensity = 48;
-    const int threshold = intensity * 2;
-    const int r = cos(m_phase * 0.02) * intensity + intensity;
-    const int g = sin(m_phase * 0.03  + 10) * intensity + intensity;
-    const int b = sin(m_phase * 0.05) * intensity + intensity;
-    float div = 1;
-
-    if (r + g + b > threshold) {
-      div = 1.8;
-    }
-
-    m_data[m_pos] = { (int)(r / div)
-                    , (int)(g / div)
-                    , (int)(b / div)
-                    };
+    m_data[m_pos] = makeZ(m_phase);
   }
 
 private:

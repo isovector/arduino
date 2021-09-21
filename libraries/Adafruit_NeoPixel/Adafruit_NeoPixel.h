@@ -192,7 +192,7 @@ static const uint8_t PROGMEM _NeoPixelGammaTable[256] = {
   182,184,186,188,191,193,195,197,199,202,204,206,209,211,213,215,
   218,220,223,225,227,230,232,235,237,240,242,245,247,250,252,255};
 
-/*!
+/*! 
     @brief  Class that stores state and functions for interacting with
             Adafruit NeoPixels and compatible devices.
 */
@@ -251,7 +251,7 @@ class Adafruit_NeoPixel {
              writes past the ends of the buffer. Great power, great
              responsibility and all that.
   */
-  uint8_t          **getPixels(void) const { return &pixels; };
+  uint8_t          *getPixels(void) const { return pixels; };
   uint8_t           getBrightness(void) const;
   /*!
     @brief   Retrieve the pin number used for NeoPixel data output.

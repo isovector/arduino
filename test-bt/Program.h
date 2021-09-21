@@ -4,8 +4,9 @@
 #include "Adafruit_NeoPixel.h"
 #include "Fixed.h"
 
-#define LOGICAL_LEDS (300 + 300 - 49)
+#define LOGICAL_LEDS (300 + 300 - 49 - BROKEN_LEDS)
 #define PHYSICAL_LEDS 300
+#define BROKEN_LEDS 54
 #define LED_PIN 7
 
 
