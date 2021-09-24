@@ -25,15 +25,15 @@ public:
   }
 
   CRGB makeZ(ufixed z) const {
-    const int intensity = 48;
+    const int intensity = 24;
     const int threshold = intensity * 2;
     const int r = cos(z * 0.02) * intensity + intensity;
     const int g = sin(z * 0.03  + 10) * intensity + intensity;
     const int b = sin(z * 0.05) * intensity + intensity;
 
-    return { (int)r
-           , (int)g
-           , (int)b
+    return { (uint8_t)(r)
+           , (uint8_t)(g)
+           , (uint8_t)(b)
            };
   }
 

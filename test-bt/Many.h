@@ -6,7 +6,7 @@
 template <int N>
 class Many : public Program {
 public:
-  Many() : m_count(0), m_color({0, 127, 0}) {
+  Many() : m_count(0) {
     for (int i = 0; i < N; i++) {
       m_programs[i] = NULL;
     }
@@ -58,7 +58,6 @@ public:
   }
 
 private:
-  CRGB m_color;
   Program *m_programs[N];
   uint8_t m_count;
 };

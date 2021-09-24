@@ -18,7 +18,7 @@ public:
     const CRGB color = m_color_provider->eval(v);
 
     int d = abs(v - m_pos);
-    uint16_t brightness = strip.sine8(m_time * m_cycle_time);
+    uint16_t brightness = 0;
 
     if (brightness > 0 && 0 <= d  && d < m_falloff) {
       return CRGB( (color.r * brightness) >> 8

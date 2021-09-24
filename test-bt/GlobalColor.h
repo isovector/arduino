@@ -4,7 +4,7 @@
 #include "Program.h"
 
 CRGB global_color = {0, 0, 0};
-int global_intensity = 255;
+double global_intensity = 1;
 
 class GlobalColor : public Program {
 public:
@@ -14,7 +14,10 @@ public:
   }
 
   CRGB eval(int v) const {
-    return global_color;
+    return CRGB( (uint8_t)((double)global_color.r * global_intensity)
+               , (uint8_t)((double)global_color.g * global_intensity)
+               , (uint8_t)((double)global_color.b * global_intensity)
+               );
   }
 
   void evolve(time delta) {
