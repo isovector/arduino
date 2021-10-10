@@ -1,17 +1,17 @@
 #ifndef BOUNCE_H
 #define BOUNCE_H
 
+#include <memory>
 #include "Fixed.h"
 #include "Program.h"
 
 class Bounce : public Program {
 public:
-  Bounce(Program *c, int pos, fixed dir, int tail)
+  Bounce(std::shared_ptr<Program> c, int pos, fixed dir, int tail)
     : m_color_provider(c), m_pos(itof(pos, 0)), m_vel(dir), m_tail(tail)
   {}
 
   ~Bounce() {
-    delete m_color_provider;
   }
 
   CRGB eval(const int v) const {
@@ -54,7 +54,7 @@ public:
   }
 
 private:
-  Program *m_color_provider;
+  std::shared_ptr<Program> m_color_provider;
   fixed m_pos;
   fixed m_vel;
   int m_tail;

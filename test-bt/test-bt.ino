@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "ConstColor.h"
 #include "EvolveColor.h"
 #include "Many.h"
@@ -16,17 +18,17 @@
 
 
 void setNexus() {
-  delete program;
   Many<7> *many = new Many<7>();
   /* many->add(evolve_color(0, 160, 255, 5, 120)); */
   many->add(new Aurora());
-  Program *ec = evolve_color(0, 1, 255, 200, 10);
+  std::shared_ptr<Program> ec(evolve_color(0, 1, 255, 200, 10));
   many->add(new Bounce(ec, 100, -itof(5, 15), 30));
   many->add(new Bounce(ec, 140, -itof(7, 15), 30));
   many->add(new Bounce(ec, 180, -itof(5, 0), 30));
   many->add(new Bounce(ec, 220, -itof(7, 0), 30));
   many->add(new Bounce(ec, 260, -itof(11, 0), 30));
   many->add(new Bounce(ec, 300, -itof(13, 0), 30));
+  delete program;
   program = many;
 }
 
@@ -44,16 +46,26 @@ void setGlobal() {
 unsigned long last_time = 0;
 
 void setup() {
-  FastLED.addLeds<1, WS2811, LED_PIN, GRB>(leds1, PHYSICAL_LEDS);
-  FastLED.addLeds<1, WS2811, LED_PIN + 2, GRB>(leds2, LOGICAL_LEDS - PHYSICAL_LEDS);
-  memset(leds1, 0, sizeof(leds1));
-  memset(leds2, 0, sizeof(leds2));
-
   Serial.begin(9600);
   irrecv.enableIRIn();
 
+  FastLED.addLeds<1, WS2812, LED1_PIN, GRB>(leds1, PHYSICAL_LEDS);
+  FastLED.addLeds<1, WS2812, LED2_PIN, GRB>(leds2, LOGICAL_LEDS - PHYSICAL_LEDS);
+  FastLED.setMaxRefreshRate(60);
+
+  memset(leds1, 0, sizeof(leds1));
+  memset(leds2, 0, sizeof(leds2));
+
+  pinMode(20, OUTPUT);
+  digitalWrite(20, LOW);
+  pinMode(21, OUTPUT);
+  digitalWrite(21, HIGH);
+  pinMode(22, INPUT);
+
   program = new GlobalColor();
-  setNexus();
+  global_color = CRGB(30, 50, 0);
+  setGlobal();
+  /* setNexus(); */
   /* setAurora(); */
   last_time = millis();
 
@@ -78,7 +90,7 @@ void loop() {
     } else {
       results.value = last_ir_code;
     }
-    Serial.println(results.value, HEX);
+    /* Serial.println(results.value, HEX); */
     switch (results.value) {
       case 0xFF02FD: // off
         global_color = CRGB(0, 0, 0);
@@ -105,13 +117,31 @@ void loop() {
         break;
       case 0xFFB24D: // Purple
         delete program;
-        program = new Erin(160, 192);
+        program = new Erin(160, 208);
         break;
       case 0xFF3AC5: // brightness up
         global_intensity = min(1, global_intensity + 0.05);
         break;
       case 0xFFBA45: // brightness down
         global_intensity = max(0, global_intensity - 0.05);
+        break;
+      case 0xFF28D7: // red up
+        global_color.r = (uint8_t)min(255, (int)global_color.r + 5);
+        break;
+      case 0xFF08F7: // red down
+        global_color.r = (uint8_t)max(0, (int)global_color.r - 5);
+        break;
+      case 0xFFA857: // green up
+        global_color.g = (uint8_t)min(255, (int)global_color.g + 5);
+        break;
+      case 0xFF8877: // green down
+        global_color.g = (uint8_t)max(0, (int)global_color.g - 5);
+        break;
+      case 0xFF6897: // blue up
+        global_color.b = (uint8_t)min(255, (int)global_color.b + 5);
+        break;
+      case 0xFF48B7: // blue down
+        global_color.b = (uint8_t)max(0, (int)global_color.b - 5);
         break;
     }
     irrecv.resume();
@@ -122,6 +152,11 @@ void loop() {
   program->evolve(delta);
   last_time = now;
 
-  push_lights();
+  /* if (program->wants_draw()) { */
+  /*   Serial.println("drawing"); */
+    push_lights();
+  /* } */
+
+  /* delay(10000); */
 }
 

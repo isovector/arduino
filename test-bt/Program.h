@@ -7,34 +7,12 @@
 #define LOGICAL_LEDS (300 + 300 - 49 - BROKEN_LEDS)
 #define PHYSICAL_LEDS 300
 #define BROKEN_LEDS 54
-#define LED_PIN 7
+#define LED1_PIN 6
+#define LED2_PIN 14
 
 
 CRGB leds1[PHYSICAL_LEDS];
 CRGB leds2[LOGICAL_LEDS - PHYSICAL_LEDS];
-
-
-// struct CRGB {
-//   CRGB() : rgb(0) {
-//   }
-
-//   CRGB(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {
-//   }
-
-//   CRGB(uint32_t c) : rgb(c) {
-//   }
-
-
-//   union {
-//     struct {
-//       uint8_t b;
-//       uint8_t g;
-//       uint8_t r;
-//       uint8_t _unused;
-//     };
-//     uint32_t rgb;
-//   };
-// };
 
 struct Interval {
 
@@ -57,6 +35,10 @@ public:
 
   virtual Interval canvas() const {
     return {0, LOGICAL_LEDS};
+  }
+
+  virtual bool wants_draw() {
+    return true;
   }
 
   virtual void evolve(const time delta) {

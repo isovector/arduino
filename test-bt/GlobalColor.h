@@ -8,7 +8,7 @@ double global_intensity = 1;
 
 class GlobalColor : public Program {
 public:
-  GlobalColor() {}
+  GlobalColor() : m_clock(0) {}
 
   ~GlobalColor() {
   }
@@ -20,8 +20,19 @@ public:
                );
   }
 
+  bool wants_draw() {
+    if (m_clock == 0) {
+      m_clock = 1;
+      return true;
+    }
+    return false;
+  }
+
   void evolve(time delta) {
   }
+
+private:
+  uint8_t m_clock = 0;
 };
 
 #endif
