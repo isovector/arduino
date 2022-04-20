@@ -44,6 +44,14 @@ public:
   virtual void evolve(const time delta) {
     return;
   }
+
+  virtual void evolve(const float delta) {
+    return;
+  }
+
+  virtual int identifier() const {
+    return 0;
+  }
 };
 
 Program *program = NULL;

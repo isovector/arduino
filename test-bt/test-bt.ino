@@ -8,6 +8,7 @@
 #include "Aurora.h"
 #include "GlobalColor.h"
 #include "Erin.h"
+#include "Timer.h"
 
 #include "Remote.h"
 
@@ -42,16 +43,27 @@ void setGlobal() {
   program = new GlobalColor();
 }
 
+void setTimer() {
+  if (program->identifier() == TIMER_ID) {
+    duration += 60;
+  } else {
+    duration = 60;
+    delete program;
+    program = new Timer();
+  }
+}
+
 
 unsigned long last_time = 0;
 
 void setup() {
   Serial.begin(9600);
-  irrecv.enableIRIn();
 
   FastLED.addLeds<1, WS2812, LED1_PIN, GRB>(leds1, PHYSICAL_LEDS);
   FastLED.addLeds<1, WS2812, LED2_PIN, GRB>(leds2, LOGICAL_LEDS - PHYSICAL_LEDS);
   FastLED.setMaxRefreshRate(60);
+
+  irrecv.enableIRIn();
 
   memset(leds1, 0, sizeof(leds1));
   memset(leds2, 0, sizeof(leds2));
@@ -62,9 +74,9 @@ void setup() {
   digitalWrite(21, HIGH);
   pinMode(22, INPUT);
 
-  program = new GlobalColor();
-  global_color = CRGB(30, 50, 0);
-  setGlobal();
+  program = new Timer();
+  global_color = CRGB(255, 0, 0);
+  /* setGlobal(); */
   /* setNexus(); */
   /* setAurora(); */
   last_time = millis();
@@ -115,6 +127,9 @@ void loop() {
       case 0xFFF00F: // Auto
         setNexus();
         break;
+      case 0xFFD02F: // flash
+        setTimer();
+        break;
       case 0xFFB24D: // Purple
         delete program;
         program = new Erin(160, 208);
@@ -148,8 +163,10 @@ void loop() {
   }
 
   unsigned long now = millis();
+  float dt = (float)(now - last_time) / 1000;
   time delta = max(1, milli_diff(now, last_time));
   program->evolve(delta);
+  program->evolve(dt);
   last_time = now;
 
   /* if (program->wants_draw()) { */
